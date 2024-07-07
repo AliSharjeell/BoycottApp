@@ -1,125 +1,721 @@
+import 'package:Boycott/button.dart';
+import 'package:barcode_scan2/model/android_options.dart';
+import 'package:barcode_scan2/model/scan_options.dart';
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
+import 'package:barcode_scan2/platform_wrapper.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:html/parser.dart' show parse;
+import 'dart:convert';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final cameras = await availableCameras();
+  // Set the navigation bar color
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    systemNavigationBarColor: Colors.white,
+  )); // Change this to your desired color
+  runApp(MaterialApp(
+    home: Home(cameras: cameras),
+  ));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class Home extends StatefulWidget {
+  final List<CameraDescription> cameras;
 
-  // This widget is the root of your application.
+  const Home({required this.cameras, Key? key}) : super(key: key);
+
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  late CameraController _controller;
+  bool _isCameraInitialized = false;
+  String barcodeResult = '';
+  String barcodeResult2 = '';
+  String status = '';
+
+  List<String> brands = [
+    '7up',
+    'pepsi',
+    'pepsico'
+        'Acqua Panna',
+    'Actimel',
+    'Activia',
+    'Adidas',
+    'Aerin',
+    'Aero',
+    'Aesop',
+    'Agoda',
+    'Ahava',
+    'Airbnb',
+    'Airwaves',
+    'Aldi Nord',
+    'Alpro',
+    'Always',
+    'Amazon',
+    'Ambipur',
+    'American Eagle',
+    'Amika',
+    'Appletiser',
+    'Aptamil',
+    'Aquafina',
+    'Aquarius',
+    'Aramis',
+    'Ariel',
+    'Arwa',
+    'Aussie',
+    'Aviva',
+    'AXA',
+    'Axe',
+    'BAE Systems',
+    'Bally',
+    'Bank of America',
+    'Bank of Montreal',
+    'Barbican',
+    'Barclays',
+    'Bath & Body Works',
+    'Bayer Pharmaceuticals',
+    'Belvita',
+    'Ben & Jerry\'s',
+    'Ben\'s Originals',
+    'Benefit Cosmetics',
+    'Berskha',
+    'BIOTHERM',
+    'BNP Paribas',
+    'BNY Mellon',
+    'Bobbi Brown',
+    'Body Armor',
+    'Boeing',
+    'Bold',
+    'Bomaja',
+    'Bon Aqua',
+    'Booking.com',
+    'Bounty',
+    'Bounty Paper Towels',
+    'BP',
+    'British Petroleum',
+    'Braun',
+    'Bulgari',
+    ' Bvlgari',
+    'Burger King',
+    'Buxton',
+    'Cadbury',
+    'Capital One',
+    'Caribou Coffee',
+    'Carmel Agrexco',
+    'Carnation',
+    'Carrefour',
+    'Carte D\'Or Ice Creams',
+    'Caterpillar',
+    'Catsan',
+    'Celebrations',
+    'Celine',
+    'Cerave',
+    'Chanel',
+    'Charmin',
+    'Cheapflights',
+    'Cheerios',
+    'Cheetos',
+    'Cif',
+    'Clear Blue',
+    'Clinique',
+    'Coca-Cola',
+    'Coca Cola',
+    'Coke'
+        'Coffee Mate',
+    'Comfort',
+    'Conservative party',
+    'Cornetto Ice Creams',
+    'Costa Coffee',
+    'Coty',
+    'Cow & Gate',
+    'Crest Toothpaste',
+    'Curver',
+    'Daim',
+    'Dairy Milk',
+    'Danone',
+    'Dasani Water',
+    'Delilah',
+    'Dell',
+    'Aquafina'
+        'Desert Diamond',
+    'Diesel Frangrances',
+    'Diet Coke',
+    'DKNY',
+    'Dine',
+    'Dior / Christian Dior',
+    'Dior',
+    'Christian Dior',
+    'Disney',
+    'Dogadan',
+    'Dolce Gusto',
+    'Dolmio',
+    'Domestos',
+    'Doritos',
+    'Dove',
+    'Dr Pepper',
+    'Eden Springs',
+    'Elbit Systems',
+    'Enjoy Life',
+    'Espresso House',
+    'Estee Lauder',
+    'Evian',
+    'Express VPN',
+    'Facebook',
+    'Fairlife',
+    'Fairy',
+    'Fanta',
+    'Febreze',
+    'Felix',
+    'Fendi',
+    'Fenty Beauty by Rihanna',
+    'Ferrero',
+    'Ferrero Rocher',
+    'Fiverr',
+    'Flash',
+    'Fuzetea',
+    'G4S',
+    'Game Fuel',
+    'Garnier',
+    'Gatorade',
+    'Gillette',
+    'Giorgio Armani Beauty',
+    'Givenchy',
+    'Glaceau Smartwater',
+    'Google',
+    'Grenade',
+    'Hadiklaim',
+    'Halls',
+    'Head and Shoulders',
+    'Hellman\'s',
+    'Herbal Essences',
+    'Hotel Chocolat',
+    'HP',
+    'HSBC',
+    'Hubba Bubba',
+    'Hublot',
+    'Hyundai',
+    'IAMS',
+    'Il Makiage',
+    'Indigo Books',
+    'Innocent Smoothies',
+    'Instagram',
+    'Intel',
+    'IT Cosmetics',
+    'Jaguar',
+    'Jo Malone',
+    'Juicy Fruit',
+    'Kayak',
+    'Kenzo',
+    'Kerastase',
+    'Keter',
+    'KFC',
+    'Kiehl\'s',
+    'Kilian',
+    'Kinder',
+    'King Solomon',
+    'KitKat',
+    'Knorr',
+    'Krispy Kreme',
+    'KurKure',
+    'Kylie Cosmetics',
+    'La Mer',
+    'La Roche-Posay',
+    'Lab Series',
+    'Labour party',
+    'Lancome',
+    'Land Rover',
+    'Range Rover'
+        'Lavazza',
+    'Lay\'s',
+    'Legal & General',
+    'Lenor',
+    'Lidl',
+    'Lion',
+    'Lipton',
+    'Lipton Iced Tea',
+    'Lloyds Bank',
+    'Lockheed Martin',
+    'Loewe',
+    'Loreal',
+    'L\'oreal'
+        'Louis Vuitton',
+    'Lux',
+    'LVMH',
+    'Lynx',
+    'M&M\'s',
+    'MAC Cosmetics',
+    'MBDA',
+    'Magen David Adom',
+    'Maggi',
+    'Magnum Ice Creams',
+    'Walls'
+        'Maison Francis Kurkdjian',
+    'Maison Margiela Fragrances',
+    'Malteasers',
+    'Marc Jacobs',
+    'Marks and Spencer',
+    'M&S',
+    'Mars',
+    'Maybelline',
+    'McDonalds',
+    'Mercedes Benz',
+    'Meta',
+    'Microsoft',
+    'Mikado',
+    'Milka',
+    'Milky Way',
+    'Milkybar',
+    'Minute Maid',
+    'Mirinda',
+    'Monday.com',
+    'Mondelez',
+    'Monster Energy',
+    'Moovit',
+    'MoroccanOil',
+    'Motorola',
+    'Mountain Dew',
+    'Movenpick',
+    'Mugler Beauty',
+    'Nescafe',
+    'Nespresso',
+    'Nesquik',
+    'Nestle',
+    'Next',
+    'NIOD',
+    'Noon.com',
+    'Nutella',
+    'Nvidia',
+    'NYX Professional Makeup',
+    'Oasis',
+    'Olay',
+    'Old Spice',
+    'OpenAI',
+    'Opentable',
+    'Oracle',
+    'Oral B',
+    'Orangina',
+    'Oreo',
+    'Origins',
+    'Outbrain',
+    'Pampers',
+    'Pantene',
+    'Papa Johns',
+    'Paramount',
+    'Payoneer',
+    'Pedigree',
+    'Peet\'s Coffee',
+    'Pepsi',
+    'Perrier',
+    'Persil',
+    'Philadelphia',
+    'Piers Morgan',
+    'Pizza Hut',
+    'Popeyes',
+    'Power Action',
+    'Powerade',
+    'Prada Beauty',
+    'Pret-a-manger',
+    'Priceline',
+    'Procter & Gamble',
+    'Puma',
+    'Pure Life',
+    'Purina',
+    'Quaker Oats',
+    'Quality Street',
+    'Ralph Lauren Frangrances',
+    'Rani',
+    'Rapunzel',
+    'Rapyd',
+    'Rare Beauty by Selena Gomez',
+    'Raytheon',
+    'RBS',
+    'Rentalcars.com',
+    'Rexona',
+    'Ritz',
+    'River Island',
+    'Rockstar Energy',
+    'Royal Canin',
+    'S.Pellegrino',
+    'Sabra',
+    'Sadaf Foods',
+    'Sadia Foods',
+    'SAP',
+    'Schweppes',
+    'Schweppes',
+    'Scotia Bank',
+    'Sephora',
+    'Seven Seas',
+    'Shake Shack',
+    'STELLA by Stella McCartney',
+    'eToro',
+    'Shams',
+    'Shredded Wheat',
+    'Shreddies',
+    'Siemens',
+    'Simply Beverages',
+    'Skechers',
+    'Skims',
+    'Skittles',
+    'Smarties',
+    'Smartwater',
+    'Snickers',
+    'SodaStream',
+    'Sour Patch Kids',
+    'Sprite',
+    'Spyglass Media Group',
+    'Standard Life',
+    'Starbucks',
+    'Sudocrem',
+    'Surf',
+    'Taboola',
+    'Taco Bell',
+    'TAG Heuer',
+    'Tampax',
+    'Tang',
+    'Ted Baker',
+    'Temptations',
+    'Tesco',
+    'Teva Pharmaceuticals',
+    'The Ordinary',
+    'Tic Tac',
+    'Tide',
+    'Tiffany & Co.',
+    'Tim Hortons',
+    'Toblerone',
+    'Tom Ford Beauty',
+    'Too Faced',
+    'Tory Burch',
+    'Tresemme',
+    'Tropicana',
+    'Twix',
+    'Unicef',
+    'Unilever',
+    'Urban Decay',
+    'Valentino Beauty',
+    'Venus',
+    'Viber',
+    'Vicks',
+    'Victorias Secret',
+    'Viktor & Rolf Beauty',
+    'Visa',
+    'Vitaminwater',
+    'Vittel',
+    'Volvic',
+    'Volvo Heavy Machinery',
+    'Walkers',
+    'Walls Ice Creams',
+    'Walmart',
+    'Waze',
+    'Wells Fargo',
+    'Whiskas',
+    'Wix',
+    'Wrigley\'s Extra',
+    'Yum Foods',
+    'Yves Saint Laurent Beauty',
+    'YSL Beauty',
+    'Zara',
+  ];
+
+  Future<void> check(String prod, String man) async {
+    bool boycotted = false;
+
+    // Check product name
+    for (int i = 0; i < brands.length; i++) {
+      if (prod.toLowerCase().contains(brands[i].toLowerCase())) {
+        setState(() {
+          status = 'Boycott';
+        });
+        boycotted = true; // Set flag to true if boycotted
+        break; // Exit loop early since we found a match
+      }
+    }
+
+    // Check manufacturer
+    if (!boycotted) {
+      for (int i = 0; i < brands.length; i++) {
+        if (man.toLowerCase().contains(brands[i].toLowerCase())) {
+          setState(() {
+            status = 'Boycott';
+          });
+          boycotted = true; // Set flag to true if boycotted
+          break; // Exit loop early since we found a match
+        }
+      }
+    }
+
+    // If neither product nor manufacturer matches
+    if (!boycotted) {
+      if (prod != 'Product not found') {
+        setState(() {
+          status = 'Not boycotted';
+        });
+      } else {
+        setState(() {
+          status = 'Not Sure';
+        });
+      }
+    }
   }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  void initState() {
+    super.initState();
+    initializeCamera();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+  Future<void> initializeCamera() async {
+    _controller = CameraController(widget.cameras[0], ResolutionPreset.medium);
+    await _controller.initialize();
+    if (mounted) {
+      setState(() {
+        _isCameraInitialized = true;
+      });
+    }
+  }
+
+  Future<void> scanBarcode() async {
+    try {
+      var options = const ScanOptions(
+        strings: {
+          'cancel': 'Cancel',
+          'flash_on': '',
+          'flash_off': '',
+        },
+        autoEnableFlash: false, // Disable auto flash
+        android: AndroidOptions(
+          aspectTolerance: 0.5, // Set aspect tolerance (default is 0.5)
+          useAutoFocus: true, // Enable autofocus (default is true)
         ),
+      );
+
+      var result = await BarcodeScanner.scan(options: options);
+
+      if (result.rawContent.isNotEmpty) {
+        // Handle barcode scan result
+        lookupBarcode(result.rawContent);
+      } else {
+        print('Scan cancelled or failed');
+      }
+    } catch (e) {
+      print('Error scanning barcode: $e');
+    }
+  }
+
+  Future<void> lookupBarcode(String barcode) async {
+    final url = 'https://world.openfoodfacts.org/api/v0/product/$barcode.json';
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['status'] == 1) {
+        final product = data['product'];
+        setState(() {
+          barcodeResult = '${product['product_name'] ?? 'Not found'}';
+          barcodeResult2 = '${product['brands'] ?? 'Not found'}';
+          check(barcodeResult, barcodeResult2);
+        });
+      } else {
+        setState(() {
+          barcodeResult = 'Product not found';
+          barcodeResult2 = 'Product not found';
+          check(barcodeResult, barcodeResult2);
+        });
+      }
+    } else {
+      setState(() {
+        barcodeResult = 'Failed to load barcode information';
+        barcodeResult2 = 'Failed to load barcode information';
+        check(barcodeResult, barcodeResult2);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Size screenSize = MediaQuery.of(context).size;
+
+    if (!_isCameraInitialized) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          CameraPreview(_controller),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(height: screenSize.height * 0.13),
+              Text(
+                'Boycott',
+                style: GoogleFonts.inter(
+                  fontSize: screenSize.width * 0.08,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      offset: const Offset(0.0, 0.0), // Set the shadow offset
+                      blurRadius: 200.0, // Set the blur radius
+                      color: const Color.fromARGB(255, 0, 0, 0)
+                          .withOpacity(1), // Set the shadow color
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Center(
+            child: Column(
+              children: [
+                SizedBox(height: screenSize.height * 0.28),
+                Container(
+                  width: screenSize.width * 0.85, // Set your desired width
+                  height: screenSize.height * 0.11, // Set your desired height
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: const Color.fromARGB(
+                          255, 239, 0, 107), // Set the outline color
+                      width:
+                          screenSize.width * 0.01, // Set the outline thickness
+                    ),
+                    borderRadius: BorderRadius.circular(
+                        29), // Optional: Set border radius for rounded corners
+                  ),
+                ),
+                SizedBox(height: screenSize.height * 0.16),
+                Expanded(
+                  child: Transform.scale(
+                    scale: screenSize.width * 0.00284,
+                    child: Expanded(
+                      child: Card(
+                        color: Colors.white,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(30),
+                            topRight: Radius.circular(30),
+                          ),
+                        ),
+                        child: Expanded(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                      right: screenSize.width * 0.43,
+                                      left: screenSize.width * 0.43),
+                                  child: Padding(
+                                    padding: EdgeInsets.only(
+                                        top: screenSize.height * 0.008),
+                                    child: Container(
+                                      width:
+                                          screenSize.width * 0.8, // Full width
+                                      height: 3.0, // Thickness of the divider
+                                      decoration: BoxDecoration(
+                                        color: const Color.fromARGB(255, 0, 0,
+                                            0), // Color of the divider
+                                        borderRadius: BorderRadius.circular(
+                                            12), // Make it half of the height for a full circle
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Button(
+                                    onTap: () {
+                                      scanBarcode();
+                                    },
+                                    text: 'Find',
+                                    screenSize: screenSize),
+                                Text(
+                                  'Product:',
+                                  style: GoogleFonts.inter(
+                                      fontSize: screenSize.width * 0.06,
+                                      color: const Color.fromARGB(
+                                          255, 239, 0, 107),
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  '$barcodeResult',
+                                  style: GoogleFonts.inter(
+                                      fontSize: screenSize.width * 0.05,
+                                      color: Color.fromARGB(255, 0, 0, 0),
+                                      fontWeight: FontWeight.w500),
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.only(right: 30, left: 30),
+                                  child: Divider(
+                                    thickness: 2.0,
+                                    color: Color.fromARGB(255, 212, 212,
+                                        212), // Color of the line
+                                  ),
+                                ),
+                                Text(
+                                  'Manufacturer:',
+                                  style: GoogleFonts.inter(
+                                      fontSize: screenSize.width * 0.06,
+                                      color: const Color.fromARGB(
+                                          255, 239, 0, 107),
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  '$barcodeResult2',
+                                  style: GoogleFonts.inter(
+                                      fontSize: screenSize.width * 0.05,
+                                      color: const Color.fromARGB(255, 0, 0, 0),
+                                      fontWeight: FontWeight.w500),
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.only(right: 30, left: 30),
+                                  child: Divider(
+                                    thickness: 2.0,
+                                    color: Color.fromARGB(255, 212, 212,
+                                        212), // Color of the line
+                                  ),
+                                ),
+                                Text(
+                                  'Status:',
+                                  style: GoogleFonts.inter(
+                                      fontSize: screenSize.width * 0.06,
+                                      color: const Color.fromARGB(
+                                          255, 239, 0, 107),
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  status,
+                                  style: GoogleFonts.inter(
+                                      fontSize: screenSize.width * 0.05,
+                                      color: const Color.fromARGB(255, 0, 0, 0),
+                                      fontWeight: FontWeight.w500),
+                                ),
+                                SizedBox(height: screenSize.height * 0.026)
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
