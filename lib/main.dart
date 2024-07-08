@@ -7,16 +7,15 @@ import 'package:flutter/services.dart';
 import 'package:barcode_scan2/platform_wrapper.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
-import 'package:html/parser.dart' show parse;
+// import 'package:html/parser.dart' show parse;
 import 'dart:convert';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final cameras = await availableCameras();
-  // Set the navigation bar color
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     systemNavigationBarColor: Colors.white,
-  )); // Change this to your desired color
+  ));
   runApp(MaterialApp(
     home: Home(cameras: cameras),
   ));
@@ -424,31 +423,28 @@ class _HomeState extends State<Home> {
   Future<void> check(String prod, String man) async {
     bool boycotted = false;
 
-    // Check product name
     for (int i = 0; i < brands.length; i++) {
       if (prod.toLowerCase().contains(brands[i].toLowerCase())) {
         setState(() {
           status = 'Boycott';
         });
-        boycotted = true; // Set flag to true if boycotted
-        break; // Exit loop early since we found a match
+        boycotted = true;
+        break;
       }
     }
 
-    // Check manufacturer
     if (!boycotted) {
       for (int i = 0; i < brands.length; i++) {
         if (man.toLowerCase().contains(brands[i].toLowerCase())) {
           setState(() {
             status = 'Boycott';
           });
-          boycotted = true; // Set flag to true if boycotted
-          break; // Exit loop early since we found a match
+          boycotted = true;
+          break;
         }
       }
     }
 
-    // If neither product nor manufacturer matches
     if (!boycotted) {
       if (prod != 'Product not found') {
         setState(() {
@@ -486,17 +482,16 @@ class _HomeState extends State<Home> {
           'flash_on': '',
           'flash_off': '',
         },
-        autoEnableFlash: false, // Disable auto flash
+        autoEnableFlash: false,
         android: AndroidOptions(
-          aspectTolerance: 0.5, // Set aspect tolerance (default is 0.5)
-          useAutoFocus: true, // Enable autofocus (default is true)
+          aspectTolerance: 0.5,
+          useAutoFocus: true,
         ),
       );
 
       var result = await BarcodeScanner.scan(options: options);
 
       if (result.rawContent.isNotEmpty) {
-        // Handle barcode scan result
         lookupBarcode(result.rawContent);
       } else {
         print('Scan cancelled or failed');
@@ -585,17 +580,14 @@ class _HomeState extends State<Home> {
               children: [
                 SizedBox(height: screenSize.height * 0.28),
                 Container(
-                  width: screenSize.width * 0.85, // Set your desired width
-                  height: screenSize.height * 0.11, // Set your desired height
+                  width: screenSize.width * 0.85,
+                  height: screenSize.height * 0.11,
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: const Color.fromARGB(
-                          255, 239, 0, 107), // Set the outline color
-                      width:
-                          screenSize.width * 0.01, // Set the outline thickness
+                      color: const Color.fromARGB(255, 239, 0, 107),
+                      width: screenSize.width * 0.01,
                     ),
-                    borderRadius: BorderRadius.circular(
-                        29), // Optional: Set border radius for rounded corners
+                    borderRadius: BorderRadius.circular(29),
                   ),
                 ),
                 SizedBox(height: screenSize.height * 0.16),
@@ -623,14 +615,12 @@ class _HomeState extends State<Home> {
                                     padding: EdgeInsets.only(
                                         top: screenSize.height * 0.008),
                                     child: Container(
-                                      width:
-                                          screenSize.width * 0.8, // Full width
-                                      height: 3.0, // Thickness of the divider
+                                      width: screenSize.width * 0.8,
+                                      height: 3.0,
                                       decoration: BoxDecoration(
-                                        color: const Color.fromARGB(255, 0, 0,
-                                            0), // Color of the divider
-                                        borderRadius: BorderRadius.circular(
-                                            12), // Make it half of the height for a full circle
+                                        color:
+                                            const Color.fromARGB(255, 0, 0, 0),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                     ),
                                   ),
@@ -660,8 +650,7 @@ class _HomeState extends State<Home> {
                                   padding: EdgeInsets.only(right: 30, left: 30),
                                   child: Divider(
                                     thickness: 2.0,
-                                    color: Color.fromARGB(255, 212, 212,
-                                        212), // Color of the line
+                                    color: Color.fromARGB(255, 212, 212, 212),
                                   ),
                                 ),
                                 Text(
@@ -683,8 +672,7 @@ class _HomeState extends State<Home> {
                                   padding: EdgeInsets.only(right: 30, left: 30),
                                   child: Divider(
                                     thickness: 2.0,
-                                    color: Color.fromARGB(255, 212, 212,
-                                        212), // Color of the line
+                                    color: Color.fromARGB(255, 212, 212, 212),
                                   ),
                                 ),
                                 Text(
